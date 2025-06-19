@@ -35,11 +35,8 @@ words.forEach((word) => {
 	wordMap.set(word, count + 1);
 });
 
-// 사전순, 빈도 수 , 오름차순
+// 단어의 중복은 Map으로 걸렀으니 빈도수 오름차순
 const sortedArray = Array.from(wordMap.entries()).sort((a,b) => {
-	if(a[0].localeCompare(b[0]) === 0){
-		return a[1] - b[1]
-	}
 	return a[0].localeCompare(b[0])
 })
 
@@ -51,7 +48,8 @@ function findWord(prefix: string): {
 	const result: string[] = [];
 
 	let flag = false;
-	 let lowerIndex = lowerbound(prefix);
+	let lowerIndex = lowerbound(prefix);
+	// upperbound를
 
 	for(let i = lowerIndex ; i < sortedArray.length; i++){
 		const word = sortedArray[i][0];
@@ -66,6 +64,12 @@ function findWord(prefix: string): {
 		}
 	}
 
+	if(result.length > 10){
+		while(result.length > 10){
+			result.shift();
+		}
+	}
+	
 	const duration = performance.now() - startTime;
 
 	return {
