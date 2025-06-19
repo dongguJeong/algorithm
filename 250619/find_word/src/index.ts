@@ -53,11 +53,9 @@ function findWord(prefix: string): {
 
 	for(let i = lowerIndex ; i < sortedArray.length; i++){
 		const word = sortedArray[i][0];
-		if(word.startsWith(prefix) && result.length <= 10){
+		if(word.startsWith(prefix) ){
 			result.push(word);
-			if(result.length === 10){
-				break;
-			}
+			
 		}
 		else if(flag && !word.startsWith(prefix) ){
 			break;
@@ -69,7 +67,7 @@ function findWord(prefix: string): {
 			result.shift();
 		}
 	}
-	
+
 	const duration = performance.now() - startTime;
 
 	return {
