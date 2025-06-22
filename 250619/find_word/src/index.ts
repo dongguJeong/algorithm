@@ -79,25 +79,20 @@ class Trie {
       for (const value of Object.values(now.children)) {
         if (res.length <= 10) {
           res.push(value);
-          res.sort((a, b) => {
-            return a.prefix.localeCompare(b.prefix);
-          });
+          res.sort((a, b) => b.count - a.count);
         } else {
-          if (res[0].count < value.count) {
-            res.shift();
-            res.push(value);
+          if (res[0].count <= value.count) {
             res.sort((a, b) => {
-              return a.prefix.localeCompare(b.prefix);
+              if (a.count === b.count) {
+                return a.prefix.localeCompare(b.prefix);
+              }
+              return b.count - a.count;
             });
-          } else if (res[0].count === value.count) {
-            res[0].prefix.localeCompare(value.prefix) === -1
-              ? res.splice(0, 1, value)
-              : "";
-          } else continue;
+            res.shift();
+          }
         }
       }
     }
-
     return res;
   }
 }
