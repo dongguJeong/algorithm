@@ -1,103 +1,133 @@
-import fs from 'fs';
-import path from 'path';
-import { performance } from 'perf_hooks';
+import { ChildProcess } from "child_process";
+import fs from "fs";
+import path from "path";
+import { performance } from "perf_hooks";
 
-const data = fs.readFileSync(path.join(__dirname, '../input/1m.csv'));
+const data = fs.readFileSync(path.join(__dirname, "../input/1m.csv"));
 const words = data
-	.toString()
-	.split('\n')
-	.map((line) => line.trim());
+  .toString()
+  .split("\n")
+  .map((line) => line.trim());
 
-
-const queryFile = fs.readFileSync(path.join(__dirname, '../input/queries.csv'));
+const queryFile = fs.readFileSync(path.join(__dirname, "../input/queries.csv"));
 const queries = queryFile
-	.toString()
-	.split('\n')
-	.map((line) => line.trim());
+  .toString()
+  .split("\n")
+  .map((line) => line.trim());
 
-// ----------------------------------------
-// findWord 함수를 호출하여 결과를 출력함.
-// queries.csv 와 연결할 필요 있음.
-// console.log(findWord('WORDHERE'));
-// ----------------------------------------
-
-words.shift()
+words.shift();
 queries.shift();
 
-const wordMap = new Map<string , number>();
+class Node {
+  end: Boolean;
+  count: number;
+  prefix: string;
+  children: { [key: string]: Node };
 
-// 단어 사전에서 같은 단어끼리 묶는다 
+  constructor() {
+    this.end = false;
+    this.count = 0;
+    this.prefix = "";
+    this.children = {};
+  }
+}
+
+class Trie {
+  root: Node;
+
+  constructor() {
+    this.root = new Node();
+  }
+
+  insert(word: string) {
+    let curNode = this.root;
+    for (let i = 0; i < word.length; i++) {
+      const c = word[i];
+      if (!curNode.children[c]) {
+        curNode.children[c] = new Node();
+        curNode.children[c].count = 1;
+        curNode.children[c].prefix = curNode.prefix + c;
+      } else {
+        curNode.children[c].count += 1;
+      }
+      curNode = curNode.children[c];
+    }
+    curNode.end = true;
+  }
+
+  findTop10(prefix: string) {
+    const result: Node[] = [];
+
+    // 1.단 prefix를 찾아
+    let curNode = this.root;
+    for (let i = 0; i < prefix.length; i++) {
+      if (curNode.children[prefix[i]]) {
+        curNode = curNode.children[prefix[i]];
+      }
+    }
+
+    if (!curNode) return [];
+
+    // 2. BFS로 prefix의 자식들을 싹 다 뒤진다
+    const q: Node[] = [];
+    const res: Node[] = [];
+    q.push(curNode);
+    res.push(curNode);
+    while (q.length > 0) {
+      const now = q.pop()!;
+
+      for (const value of Object.values(now.children)) {
+        if (res.length <= 10) {
+          res.push(value);
+          res.sort((a, b) => {
+            return a.prefix.localeCompare(b.prefix);
+          });
+        } else {
+          if (res[0].count < value.count) {
+            res.shift();
+            res.push(value);
+            res.sort((a, b) => {
+              return a.prefix.localeCompare(b.prefix);
+            });
+          } else if (res[0].count === value.count) {
+            res[0].prefix.localeCompare(value.prefix) === -1
+              ? res.splice(0, 1, value)
+              : "";
+          } else continue;
+        }
+      }
+    }
+
+    return res;
+  }
+}
+
+const trie = new Trie();
 words.forEach((word) => {
-	if(!wordMap.has(word)){
-		wordMap.set(word,0);
-	}
-	const count = wordMap.get(word)!
-	wordMap.set(word, count + 1);
+  trie.insert(word);
 });
 
-// 단어의 중복은 Map으로 걸렀으니 빈도수 오름차순
-const sortedArray = Array.from(wordMap.entries()).sort((a,b) => {
-	return a[0].localeCompare(b[0])
-})
-
 function findWord(prefix: string): {
-	duration: number;
-	result: string[];
+  duration: number;
+  result: string[];
 } {
-	const startTime = performance.now();
-	const result: string[] = [];
+  const startTime = performance.now();
+  const result: string[] = [];
 
-	let flag = false;
-	let lowerIndex = lowerbound(prefix);
-	// upperbound를
+  const res = trie.findTop10(prefix);
 
-	for(let i = lowerIndex ; i < sortedArray.length; i++){
-		const word = sortedArray[i][0];
-		if(word.startsWith(prefix) ){
-			result.push(word);
-			
-		}
-		else if(flag && !word.startsWith(prefix) ){
-			break;
-		}
-	}
+  res.forEach((v) => {
+    result.push(v.prefix);
+  });
 
-	if(result.length > 10){
-		while(result.length > 10){
-			result.shift();
-		}
-	}
+  const duration = performance.now() - startTime;
 
-	const duration = performance.now() - startTime;
-
-	return {
-		duration,
-		result,
-	};
+  return {
+    duration,
+    result,
+  };
 }
-
-function lowerbound(prefix : string){
-	let lo = 0;
-	let hi = sortedArray.length;
-	let mid ;
-
-	while(lo < hi){
-		mid = Math.floor((lo +hi) /2);	
-
-		if(sortedArray[mid][0].localeCompare(prefix) === -1){
-			lo = mid + 1
-		}
-
-		else{
-			hi = mid
-		}
-	}
-
-	return lo;
-}
-
-
 
 queries.map((query) => {
-	console.log(findWord(query))
-})
+  console.log(findWord(query));
+});
